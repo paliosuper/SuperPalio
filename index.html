@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Shooter - Premium Top-Down Game</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- HUD -->
+        <div id="hud">
+            <div id="score-display">
+                <span id="scoreValue">0</span>
+            </div>
+            <div id="health-bar-container">
+                <div id="health-bar-fill"></div>
+            </div>
+            <div id="ammo-container"></div>
+            <div id="inventory-container">
+                <div id="refri-slot" class="inventory-slot hidden" draggable="false">
+                    <img id="refri-icon" src="refri.png.png" alt="SODA">
+                    <span id="refri-count" style="position: absolute; bottom: 0px; right: 2px; font-size: 1.5rem; color: #fff; text-shadow: 2px 2px 0px #000; font-family: var(--font-heading); font-weight: bold;"></span>
+                </div>
+            </div>
+            <!-- Botão de Pausa -->
+            <div id="pause-btn-container">
+                <button id="pauseBtn">⏸</button>
+            </div>
+        </div>
+
+        <!-- Boss Health Bar (HUD topo central) -->
+        <div id="boss-bar-container">
+            <span id="boss-name">GUARDIÃO DA FAZENDA</span>
+            <div class="boss-bar-inner" style="width:100%;">
+                <div id="boss-health-bar-bg">
+                    <div id="boss-health-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boss Intro Overlay -->
+        <div id="boss-intro-overlay">
+            <span id="boss-intro-text">⚠ PERIGO ⚠</span>
+        </div>
+
+        <!-- Editor UI -->
+        <div id="editor-ui">
+            <div id="editor-header" style="cursor: move; background: #00ff88; color: #000; padding: 5px; font-weight: bold; text-align: center; border-bottom: 2px solid #000;">
+                PAINEL EDITOR (Arraste)
+            </div>
+            <button id="toggleEditorBtn">ATIVAR MODO EDITOR</button>
+            <div id="editor-tools" class="hidden">
+                <p><strong>Ferramenta:</strong></p>
+                <div>
+                   <input type="radio" id="tool-col" name="editor-tool" value="col" checked> <label for="tool-col">Colisão (Parede)</label><br>
+                   <input type="radio" id="tool-fg" name="editor-tool" value="fg"> <label for="tool-fg">Sobreposição (Ficar Atrás)</label><br>
+                   <input type="radio" id="tool-spawn" name="editor-tool" value="spawn"> <label for="tool-spawn">Nascedor Monstro (Vermelho)</label>
+                </div>
+                <hr style="border:1px solid #00ff88; opacity:0.5; margin:5px 0;">
+                <p><strong>Configurar Tamanhos:</strong></p>
+                <div style="font-size:0.9rem; margin-bottom: 5px; color:white;">
+                    Lá Fora (Fundo/Frente):
+                    <input type="number" id="uiScaleOutMin" value="0.8" step="0.1" style="width:45px; background:#222; color:#0f8; border:1px solid #0f8;"> 
+                    <input type="number" id="uiScaleOutMax" value="1.2" step="0.1" style="width:45px; background:#222; color:#0f8; border:1px solid #0f8;"><br>
+                    No Celeiro (Fundo/Frente):
+                    <input type="number" id="uiScaleInMin" value="1.4" step="0.1" style="width:45px; background:#222; color:#0f8; border:1px solid #0f8;"> 
+                    <input type="number" id="uiScaleInMax" value="1.5" step="0.1" style="width:45px; background:#222; color:#0f8; border:1px solid #0f8;">
+                </div>
+                <hr style="border:1px solid #00ff88; opacity:0.5; margin:5px 0;">
+                <p><strong>Configurar Teleportes:</strong></p>
+                <div style="font-size:0.9rem; margin-bottom: 5px; color:white;">
+                    Nascer p/ Dentro (X / Y):
+                    <input type="number" id="uiSpawnDentroX" value="2552" step="10" style="width:50px; background:#222; color:orange; border:1px solid orange;"> 
+                    <input type="number" id="uiSpawnDentroY" value="768" step="10" style="width:50px; background:#222; color:orange; border:1px solid orange;"><br>
+                    Nascer p/ Fora (X / Y):
+                    <input type="number" id="uiSpawnForaX" value="1240" step="10" style="width:50px; background:#222; color:orange; border:1px solid orange;"> 
+                    <input type="number" id="uiSpawnForaY" value="500" step="10" style="width:50px; background:#222; color:orange; border:1px solid orange;">
+                </div>
+                <hr style="border:1px solid #00ff88; opacity:0.5; margin:5px 0;">
+                <p>Arraste uma caixa p/ mover.<br>Arraste área vazia p/ criar.<br>Botão direito p/ deletar.</p>
+                <div style="display:flex; gap: 5px;">
+                  <button id="undoBtn" style="flex:1">DESFAZER (Z)</button>
+                  <button id="clearColsBtn" style="flex:1">LIMPA TUDO</button>
+                </div>
+                <button id="exportTxtBtn">BAIXAR COLISÕES (.TXT)</button>
+                <hr style="border:1px solid #00ff88; opacity:0.5; margin:5px 0;">
+                <p><strong>Configurar Anão (Aliado):</strong></p>
+                <button id="editorRecruitDwarfBtn" style="font-size:1rem; padding:5px;">Forçar Recrutar (Teste)</button>
+                <button id="editorFlipDwarfBtn" style="font-size:1rem; padding:5px;">Virar (Espelhar)</button>
+                <label style="color:white; font-size:0.9rem;">Escala Anão: 
+                    <input type="number" id="editorDwarfSize" step="0.1" value="1.0" style="width:50px; background:#222; color:#0f8;">
+                </label>
+                <hr style="border:1px solid #00ff88; opacity:0.5; margin:5px 0;">
+                <p><strong>Configurar Dayniel (Vendas):</strong></p>
+                <button id="editorFlipVendorBtn" style="font-size:1rem; padding:5px;">Virar (Espelhar)</button>
+                <label style="color:white; font-size:0.9rem;">Escala Vendedor: 
+                    <input type="number" id="editorVendorSize" step="0.1" value="1.0" style="width:50px; background:#222; color:#0f8;">
+                </label>
+                <button id="editorVendorAnimateBtn" style="font-size:0.95rem; padding:5px; border-color:#ff88aa; color:#ff88aa;">🎬 Animar: DESLIGADO</button>
+                <button id="editorVendorAttackBtn" style="font-size:0.95rem; padding:5px; border-color:#ffaa44; color:#ffaa44;">⚔️ Testar Ataque</button>
+                <hr style="border:1px solid #00ff88; opacity:0.5; margin:5px 0;">
+                <p><strong>⚡ Teste de Score:</strong></p>
+                <div style="display:flex; gap: 5px; flex-wrap: wrap;">
+                    <button id="editorAdd1k" style="flex:1; font-size:0.9rem; padding:5px;">+1000</button>
+                    <button id="editorAdd5k" style="flex:1; font-size:0.9rem; padding:5px;">+5000</button>
+                    <button id="editorAdd10k" style="flex:1; font-size:0.9rem; padding:5px;">+10000</button>
+                </div>
+                <div style="display:flex; gap:5px; margin-top:5px; align-items:center;">
+                    <input type="number" id="editorCustomScore" value="50000" step="1000" style="flex:1; background:#222; color:gold; border:1px solid gold; padding:4px; font-family:inherit; font-size:1rem;">
+                    <button id="editorAddCustom" style="flex:1; font-size:0.9rem; padding:5px; border-color:gold; color:gold;">ADICIONAR</button>
+                </div>
+                <p style="color:#888; font-size:0.8rem; margin-top:3px;">Score atual: <span id="editorScoreDisplay" style="color:gold;">0</span></p>
+                <hr style="border:1px solid #00ff88; opacity:0.5; margin:5px 0;">
+                <p><strong>📱 Simular Mobile:</strong></p>
+                <button id="editorSimMobileBtn" style="font-size:1rem; padding:5px; border-color:#00aaff; color:#00aaff;">
+                    📱 ATIVAR MODO MOBILE
+                </button>
+                <p style="color:#888; font-size:0.8rem; margin-top:3px;">Mostra joystick e botões como no celular</p>
+                <hr style="border:1px solid #00aaff; opacity:0.5; margin:5px 0;">
+                <p style="color:#aaa; font-size:0.9rem;"><strong>Joystick:</strong></p>
+                <div style="display:flex; gap:5px; align-items:center; margin-bottom:4px;">
+                    <label style="color:#aaa; font-size:0.85rem;">Lado:</label>
+                    <button id="editorJoySideBtn" style="flex:1; font-size:0.85rem; padding:3px; border-color:#00aaff; color:#00aaff;">DIREITA ▶</button>
+                </div>
+                <div style="display:flex; gap:5px; align-items:center; margin-bottom:4px;">
+                    <label style="color:#aaa; font-size:0.85rem;">Tamanho:</label>
+                    <input type="range" id="editorJoySizeSlider" min="80" max="220" value="150" style="flex:1; accent-color:#00aaff;">
+                    <span id="editorJoySizeVal" style="color:#00aaff; font-size:0.85rem;">150</span>
+                </div>
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <label style="color:#aaa; font-size:0.85rem;">Opacidade:</label>
+                    <input type="range" id="editorJoyOpacitySlider" min="10" max="100" value="80" style="flex:1; accent-color:#00aaff;">
+                    <span id="editorJoyOpacityVal" style="color:#00aaff; font-size:0.85rem;">80%</span>
+                </div>
+                <hr style="border:1px solid #ff4444; opacity:0.5; margin:5px 0;">
+                <p style="color:#aaa; font-size:0.9rem;"><strong>Inimigos Especiais:</strong></p>
+                <div style="display:flex; gap: 5px; flex-wrap: wrap;">
+                    <button id="editorSpawnEliteTank" style="flex:1; font-size:0.85rem; padding:5px; border-color:#cc6600; color:#cc6600;">🦍 TANK</button>
+                    <button id="editorSpawnEliteFast" style="flex:1; font-size:0.85rem; padding:5px; border-color:#990066; color:#990066;">🏃 FAST</button>
+                    <button id="editorSpawnEliteRanged" style="flex:1; font-size:0.85rem; padding:5px; border-color:#0099ff; color:#0099ff;">🏹 RANGED</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Password Modal -->
+        <div id="password-modal" class="hidden">
+            <div id="password-box">
+                <h3>🔒 SENHA DO EDITOR</h3>
+                <input type="password" id="password-input" maxlength="4" placeholder="****">
+                <p id="password-feedback"></p>
+                <div id="password-buttons">
+                    <button id="password-confirm-btn">ENTRAR</button>
+                    <button id="password-cancel-btn">CANCELAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dialogue UI -->
+        <div id="dialogue-overlay" class="hidden">
+            <div id="dialogue-box">
+                <img id="dialogue-avatar" src="anao.png.png" alt="Avatar">
+                <div id="dialogue-content">
+                    <p id="dialogue-text"></p>
+                    <div id="dialogue-buttons">
+                        <button id="dialogue-recruit-btn" class="hidden">Recrutar (<span id="recruit-cost">6000</span> XP)</button>
+                        <button id="dialogue-close-btn">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Shop UI -->
+        <div id="shop-overlay" class="hidden">
+            <div id="shop-box">
+                <div id="shop-header">🛒 LOJA DO DAYNIEL</div>
+                <div id="shop-items">
+                    <div class="shop-item" id="buy-refri-btn">
+                        <img src="refri.png.png" alt="SODA">
+                        <div class="item-info">
+                            <span class="item-name">REFRIGERANTE</span>
+                            <span class="item-desc">Cura 25% | Habilidade do Anão</span>
+                            <span class="item-price">5000 XP</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="shop-close-btn">SAIR DA LOJA</button>
+            </div>
+        </div>
+
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="hidden">
+            <div id="pause-box">
+                <h2>JOGO PAUSADO</h2>
+                <button id="resumeBtn">CONTINUAR</button>
+                <button id="pauseFullscreenBtn" style="margin-top:15px; border-color:#00aaff; color:#00aaff;">TELA CHEIA</button>
+                <button id="menuBtn" style="margin-top:15px; border-color:#ff4444; color:#ff4444;">IR AO MENU</button>
+            </div>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div id="mobile-controls" class="hidden">
+            <div id="joystick-container" class="joystick-right">
+                <div id="joystick-base"></div>
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
+
+        <!-- Wave Message -->
+        <div id="wave-overlay">
+            <h2 id="wave-text"></h2>
+        </div>
+
+        <!-- Alpha Overlay (Screen Effects) -->
+        <div id="screen-effects"></div>
+
+        <!-- Start/Game Over Screens -->
+        <div id="ui-overlay" class="visible">
+            <div id="start-screen" class="menu-content">
+                <div id="platform-selection">
+                    <button id="pcSelectionBtn">PC (TECLADO)</button>
+                    <button id="mobileSelectionBtn">CELULAR (TOQUE)</button>
+                </div>
+                <p id="click-start" class="hidden blink">CLIQUE PARA COMECAR</p>
+            </div>
+        </div>
+            <div id="gameover-screen" class="menu-content hidden">
+                <h1>FIM DE JOGO</h1>
+                <p>PONTUAÇÃO FINAL: <span id="finalScore">0</span></p>
+                <button id="restartBtn">RECOMBATAR</button>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
